@@ -10,6 +10,15 @@ plugins {
 dependencies {
     // Project "app" depends on project "utils". (Project paths are separated with ":", so ":utils" refers to the top-level "utils" project.)
     implementation(project(":utils"))
+    implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
+    implementation("org.json:json:20240303")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
+
+    testImplementation(kotlin("test"))
+    testImplementation(libs.org.junit.jupiter.junit.jupiter.api)
+    testImplementation(libs.org.junit.jupiter.junit.jupiter.params)
+    testRuntimeOnly(libs.org.junit.jupiter.junit.jupiter.engine)
+    testRuntimeOnly(libs.org.junit.platform.junit.platform.launcher)
 }
 
 application {
