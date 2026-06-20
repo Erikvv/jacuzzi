@@ -12,12 +12,12 @@ import java.time.ZoneId
 
 data class PricePoint(val dateTime: Instant, val tariff: Double)
 
-class PriceFetcher {
+open class PriceFetcher {
     private val httpClient = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build()
 
-    fun fetchPrices(start: Instant, end: Instant): List<PricePoint> {
+    open fun fetchPrices(start: Instant, end: Instant): List<PricePoint> {
         val url = "https://api.anwb.nl/energy/energy-services/v2/tarieven/electricity?startDate=$start&endDate=$end&interval=HOUR"
         println("[INFO] Fetching prices from $url")
         val request = HttpRequest.newBuilder()
@@ -50,7 +50,7 @@ class PriceFetcher {
         }
     }
 
-    fun getCheapestHours(prices: List<PricePoint>, count: Int): Set<Instant> {
+    open fun getCheapestHours(prices: List<PricePoint>, count: Int): Set<Instant> {
         return prices.sortedBy { it.tariff }
             .take(count)
             .map { it.dateTime }
