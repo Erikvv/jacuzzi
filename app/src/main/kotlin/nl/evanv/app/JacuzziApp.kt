@@ -11,17 +11,13 @@ import java.util.concurrent.TimeUnit
 class JacuzziApp {
     private val amsterdamZone = ZoneId.of("Europe/Amsterdam")
     private val fetcher = PriceFetcher()
-    private lateinit var controller: JacuzziController
+    private val heaterSwitch = HeaterSwitch.create()
 
     private var scheduledHours = mutableSetOf<Instant>()
     private var lastFetchDate: LocalDate? = null
     private var fetchedAt14Today = false
 
     fun run() {
-        val secrets = loadSecrets()
-        val password = secrets["JACUZZI_MQTT_PASSWORD"] ?: throw IllegalStateException("Password not found in secrets.env")
-        controller = JacuzziController("tcp://192.168.178.240:1883", "JacuzziApp", "jacuzzi", password)
-
         println("[INFO] Starting Jacuzzi Heater Controller Loop...")
 
         while (true) {
@@ -91,22 +87,13 @@ class JacuzziApp {
         println("[INFO] Current time: ${now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}. Should heater be ON? $shouldBeOn")
 
         try {
-            controller.ensureState(if (shouldBeOn) "ON" else "OFF")
+            if (shouldBeOn) {
+                heaterSwitch.switchOn()
+            } else {
+                heaterSwitch.switchOff()
+            }
         } catch (e: Exception) {
             println("[ERROR] Error updating heater state: ${e.message}")
         }
-    }
-
-    private fun loadSecrets(): Map<String, String> {
-        val file = File("secrets.env")
-        if (!file.exists()) return emptyMap()
-        val props = mutableMapOf<String, String>()
-        file.readLines().forEach { line ->
-            if (line.contains("=")) {
-                val parts = line.split("=", limit = 2)
-                props[parts[0].trim()] = parts[1].trim()
-            }
-        }
-        return props
     }
 }

@@ -6,14 +6,19 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.json.JSONObject
 
+/**
+ * Controls the heater switch over MQTT.
+ * State of the switch in tracked in Zigbee2MQTT.
+ * You can send the same command multiple times,
+ * it will only work the first time.
+ */
 class HeaterSwitch(
     private val client: MqttClient,
     private val topic: String = "zigbee2mqtt/jacuzzi_fingerbot/set",
-//    private val topic: String = "0xa4c138c7cb3eebc5/set",
 ) {
     companion object {
         fun create(
-            config: MqttConfig,
+            config: MqttConfig = MqttConfig(),
         ): HeaterSwitch {
             try {
                 val client = MqttClient(config.url, config.user, MemoryPersistence())
