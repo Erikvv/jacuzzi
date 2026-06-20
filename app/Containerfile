@@ -1,0 +1,27 @@
+# Build artifact
+FROM docker.io/library/eclipse-temurin:26 AS builder
+
+WORKDIR /app
+
+COPY --parents \
+    gradle \
+    gradlew \
+    gradle.properties \
+    settings.gradle.kts \
+    buildSrc \
+    app \
+    utils \
+    secrets.env \
+    ./
+
+RUN --mount=type=cache,target=/root/.gradle \
+    --mount=type=cache,target=/app/.gradle \
+    ./gradlew app:build
+
+# New image without source code files to run the backend
+FROM docker.io/library/eclipse-temurin:26
+WORKDIR /app
+COPY --from=builder /app/app/build/distributions/app.tar /app/app.tar
+RUN tar -xf app.tar && rm app.tar
+
+CMD ["./app/bin/app"]
