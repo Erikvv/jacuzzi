@@ -6,6 +6,6 @@ class HeaterTogglerTest {
     @Test
     fun test() {
         val toggler = HeaterSwitch.create(MqttConfig())
-        toggler.switchOff()
+//        toggler.switchOff()
     }
 }

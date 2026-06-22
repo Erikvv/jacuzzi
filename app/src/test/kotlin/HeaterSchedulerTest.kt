@@ -9,13 +9,18 @@ import kotlin.test.assertTrue
 
 class HeaterSchedulerTest {
     @Test
+    fun myFun() {
+        val scheduler = HeaterScheduler()
+        scheduler.shouldHeaterBeOn()
+    }
+
+    @Test
     fun `test shouldHeaterBeOn returns true when hour is scheduled`() {
         val amsterdamZone = ZoneId.of("Europe/Amsterdam")
         val fixedNow = ZonedDateTime.of(2023, 10, 27, 10, 0, 0, 0, amsterdamZone)
         
         val fakeFetcher = object : PriceFetcher() {
             override fun fetchPrices(start: Instant, end: Instant): List<PricePoint> {
-                // Return 24 price points so it's considered valid
                 return (0..23).map { i ->
                     PricePoint(fixedNow.withHour(i).toInstant(), i.toDouble())
                 }

@@ -11,7 +11,7 @@ class HeaterScheduler(
     private val amsterdamZone: ZoneId = ZoneId.of("Europe/Amsterdam"),
     private val nowProvider: () -> ZonedDateTime = { ZonedDateTime.now(amsterdamZone) }
 ) {
-    private var scheduledHours = mutableSetOf<Instant>()
+    private var scheduledHours = ScheduledHours(emptySet())
     private var lastFetchDate: LocalDate? = null
     private var fetchedAt14Today = false
 
@@ -19,8 +19,7 @@ class HeaterScheduler(
         val now = nowProvider()
         updateScheduleIfNeeded(now)
 
-        val currentHourStart = now.withMinute(0).withSecond(0).withNano(0).toInstant()
-        val shouldBeOn = scheduledHours.contains(currentHourStart)
+        val shouldBeOn = scheduledHours.shouldHeaterBeOn(now.toInstant())
 
         println("[INFO] Current time: ${now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))}. Should heater be ON? $shouldBeOn")
 
@@ -39,33 +38,23 @@ class HeaterScheduler(
         if (shouldFetch) {
             println("[DECISION] Conditions met for price fetch (Startup or > 14:00).")
 
-            val start = today.atStartOfDay(amsterdamZone).toInstant()
+            val start = now.toInstant().floorToHours()
             val end = today.plusDays(2).atStartOfDay(amsterdamZone).toInstant()
 
             val allPrices = fetcher.fetchPrices(start, end)
 
             if (allPrices.isNotEmpty()) {
-                val pricesByDay = allPrices.groupBy {
-                    it.dateTime.atZone(amsterdamZone).toLocalDate()
-                }
+                // Heater needs to run about 8 hours per 24 to keep hot.
+                // We add some margin.
+                val hoursPerDayToRun = 10.0
+                val numberOfHoursToRun = ((hoursPerDayToRun / 24.0) * allPrices.size).toInt()
 
-                val newScheduledHours = mutableSetOf<Instant>()
-                pricesByDay.forEach { (date, prices) ->
-                    if (prices.size >= 23) {
-                        val cheapest = fetcher.getCheapestHours(prices, 10)
-                        println("[INFO] Cheapest 10 hours for $date: ${cheapest.map { it.atZone(amsterdamZone).toLocalTime() }}")
-                        newScheduledHours.addAll(cheapest)
-                    } else {
-                        println("[WARNING] Not enough price data for $date (${prices.size} hours). Skipping schedule for this day.")
-                    }
-                }
+                val cheapestHours = fetcher.getCheapestHours(allPrices, numberOfHoursToRun)
 
-                if (newScheduledHours.isNotEmpty()) {
-                    scheduledHours = newScheduledHours
-                    lastFetchDate = today
-                    fetchedAt14Today = isAfter14
-                    println("[INFO] Schedule updated. Total scheduled hours in memory: ${scheduledHours.size}")
-                }
+                scheduledHours = ScheduledHours(cheapestHours)
+                lastFetchDate = today
+                fetchedAt14Today = isAfter14
+                println("[INFO] Schedule updated: ${this.scheduledHours.printScheduledHours()}")
             } else {
                 println("[WARNING] No prices fetched. Will retry in 10 minutes.")
             }
