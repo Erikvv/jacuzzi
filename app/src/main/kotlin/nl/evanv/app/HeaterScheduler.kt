@@ -1,6 +1,5 @@
 package nl.evanv.app
 
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -8,6 +7,7 @@ import java.time.format.DateTimeFormatter
 
 class HeaterScheduler(
     private val fetcher: PriceFetcher = PriceFetcher(),
+    private val weerliveClient: WeerliveClient = WeerliveClient(),
     private val amsterdamZone: ZoneId = ZoneId.of("Europe/Amsterdam"),
     private val nowProvider: () -> ZonedDateTime = { ZonedDateTime.now(amsterdamZone) }
 ) {
@@ -44,9 +44,7 @@ class HeaterScheduler(
             val allPrices = fetcher.fetchPrices(start, end)
 
             if (allPrices.isNotEmpty()) {
-                // Heater needs to run about 8 hours per 24 to keep hot.
-                // We add some margin.
-                val hoursPerDayToRun = 10.0
+                val hoursPerDayToRun = getNumHoursPerDayToRun()
                 val numberOfHoursToRun = ((hoursPerDayToRun / 24.0) * allPrices.size).toInt()
 
                 val cheapestHours = fetcher.getCheapestHours(allPrices, numberOfHoursToRun)
@@ -64,5 +62,17 @@ class HeaterScheduler(
         if (today != lastFetchDate && lastFetchDate != null) {
             fetchedAt14Today = false
         }
+    }
+
+    private fun getNumHoursPerDayToRun(): Double {
+        val temperature = try {
+            weerliveClient.fetchAverageTemperatureTomorrow()
+        } catch (e: Exception) {
+            println(e);
+            -10.0
+        }
+
+        // at 0 degrees it will run for 10 hours and at 20 degrees it will run for 5 hours
+        return 10.0 - temperature * (5.0 / 20.0)
     }
 }
