@@ -72,7 +72,8 @@ class HeaterScheduler(
             -10.0
         }
 
-        // at 0 degrees it will run for 10 hours and at 20 degrees it will run for 5 hours
-        return 10.0 - temperature * (5.0 / 20.0)
+        // at 0 degrees it will run for 12 hours
+        // at 20 degrees it will run for 6 hours
+        return 12.0 - temperature * (6.0 / 20.0)
     }
 }
